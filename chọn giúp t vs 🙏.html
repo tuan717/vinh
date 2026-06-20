@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Bầu chọn · VoteChat</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#1a1d23;
+  --sidebar:#111317;
+  --surface:#22262e;
+  --surface2:#2a2f3a;
+  --border:#2f3540;
+  --accent:#5865f2;
+  --accent2:#57f287;
+  --text:#dcddde;
+  --muted:#72767d;
+  --name:#fff;
+  --one:#FF4D4D;
+  --two:#4D9FFF;
+  --one-bg:rgba(255,77,77,0.15);
+  --two-bg:rgba(77,159,255,0.15);
+  --radius:8px;
+}
+
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+
+/* ───── LAYOUT ───── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* sidebar */
+.sidebar{width:240px;background:var(--sidebar);display:flex;flex-direction:column;border-right:1px solid var(--border);flex-shrink:0}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;color:var(--name);letter-spacing:.3px}
+.sidebar-header span{color:var(--accent);margin-right:6px}
+.channel-list{padding:8px}
+.channel-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--muted);font-size:14px;cursor:default}
+.channel-item.active{background:var(--surface);color:var(--text)}
+.channel-item .hash{font-size:18px;color:var(--muted)}
+
+.members{padding:8px;margin-top:auto;border-top:1px solid var(--border)}
+.members-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;padding:8px 10px 6px;text-transform:uppercase}
+.member{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:6px;font-size:13px}
+.member:hover{background:var(--surface);cursor:default}
+.avatar-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.member-name{color:var(--text)}
+.member-tag{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:0 16px;height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;flex-shrink:0}
+.topbar .hash{color:var(--muted);font-size:20px}
+
+/* messages */
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:4px;scroll-behavior:smooth}
+.messages::-webkit-scrollbar{width:6px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* system msg */
+.sys-msg{text-align:center;font-size:12px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:8px}
+.sys-msg::before,.sys-msg::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* chat message */
+.msg-group{display:flex;gap:12px;padding:4px 0;border-radius:6px;transition:background .1s}
+.msg-group:hover{background:rgba(255,255,255,0.02)}
+.avatar-lg{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;margin-top:2px}
+.msg-body{flex:1;min-width:0}
+.msg-header{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.msg-author{font-weight:600;font-size:14px;color:var(--name)}
+.msg-time{font-size:11px;color:var(--muted)}
+.msg-content{font-size:15px;line-height:1.5;color:var(--text)}
+
+/* poll card */
+.poll-card{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;max-width:360px}
+.poll-question{font-weight:600;font-size:15px;color:var(--name);margin-bottom:14px}
+.poll-options{display:flex;flex-direction:column;gap:8px}
+.poll-option{position:relative;border:2px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color .2s}
+.poll-option:hover{border-color:#555}
+.poll-option.voted-one{border-color:var(--one)}
+.poll-option.voted-two{border-color:var(--two)}
+.poll-bar{position:absolute;inset:0;opacity:.18;transition:width .5s ease;border-radius:6px}
+.poll-bar.one{background:var(--one)}
+.poll-bar.two{background:var(--two)}
+.poll-inner{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px}
+.poll-num{font-size:20px;font-weight:800;width:24px;text-align:center}
+.poll-num.one{color:var(--one)}
+.poll-num.two{color:var(--two)}
+.poll-label{flex:1;font-weight:500;font-size:14px}
+.poll-pct{font-size:13px;color:var(--muted);font-weight:600;min-width:36px;text-align:right}
+.poll-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.poll-check.one{background:var(--one);color:#fff}
+.poll-check.two{background:var(--two);color:#fff}
+.poll-check.hidden{opacity:0}
+
+.poll-footer{margin-top:12px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+/* voter avatars */
+.voter-avatars{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.voter-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border-radius:99px;padding:2px 8px 2px 3px;font-size:12px;color:var(--text)}
+.voter-pill .av{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+
+/* reaction row */
+.reactions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.reaction{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s;user-select:none}
+.reaction:hover{background:var(--surface);border-color:#555}
+.reaction.active-one{background:var(--one-bg);border-color:var(--one)}
+.reaction.active-two{background:var(--two-bg);border-color:var(--two)}
+.reaction .emoji{font-size:15px}
+.reaction .count{font-weight:600;color:var(--text)}
+
+/* input bar */
+.inputbar{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.input-wrap{background:var(--surface);border-radius:8px;display:flex;align-items:center;gap:8px;padding:10px 14px}
+.input-wrap input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit}
+.input-wrap input::placeholder{color:var(--muted)}
+.send-btn{background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.send-btn:hover{opacity:.85}
+.send-btn:disabled{opacity:.4;cursor:default}
+
+/* ───── LOGIN ───── */
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:380px;text-align:center}
+.login-box .logo{font-size:40px;margin-bottom:12px}
+.login-box h2{font-size:22px;font-weight:700;color:var(--name);margin-bottom:6px}
+.login-box p{font-size:14px;color:var(--muted);margin-bottom:24px}
+.login-box input{width:100%;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;text-align:center}
+.login-box input:focus{border-color:var(--accent)}
+.login-box button{margin-top:14px;width:100%;background:var(--accent);border:none;color:#fff;font-size:15px;font-weight:700;font-family:inherit;padding:13px;border-radius:8px;cursor:pointer;transition:opacity .2s}
+.login-box button:hover{opacity:.87}
+.login-box .note{margin-top:14px;font-size:12px;color:var(--muted)}
+.err{color:#ff4d4d;font-size:13px;margin-top:8px;min-height:18px}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  .sidebar{display:none}
+  .poll-card{max-width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="logo">🗳️</div>
+    <h2>Tham gia bầu chọn</h2>
+    <p>Nhập tên của bạn để vào phòng chat và bỏ phiếu</p>
+    <input type="text" id="nameInput" placeholder="Tên hiển thị của bạn..." maxlength="20" autocomplete="off"/>
+    <div class="err" id="nameErr"></div>
+    <button onclick="joinChat()">Vào phòng →</button>
+    <div class="note">Không cần mật khẩu · Chỉ cần tên là đủ</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+  <!-- sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header"><span>#</span>bầu chọn</div>
+    <div class="channel-list">
+      <div class="channel-item active"><span class="hash">#</span> bầu-chọn</div>
+      <div class="channel-item"><span class="hash">#</span> general</div>
+    </div>
+    <div class="members">
+      <div class="members-title">Đang online — <span id="memberCount">0</span></div>
+      <div id="memberList"></div>
+    </div>
+  </div>
+
+  <!-- main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="hash">#</span> bầu-chọn
+    </div>
+    <div class="messages" id="messages">
+      <div class="sys-msg">Chào mừng đến phòng bầu chọn!</div>
+
+      <!-- Poll message -->
+      <div class="msg-group">
+        <div class="avatar-lg" style="background:#5865f2;color:#fff">🤖</div>
+        <div class="msg-body">
+          <div class="msg-header">
+            <span class="msg-author">VoteBot</span>
+            <span class="msg-time">Hôm nay lúc 00:00</span>
+          </div>
+          <div class="msg-content">Xin chào! Hãy tham gia bầu chọn bên dưới 👇</div>
+          <div class="poll-card">
+            <div class="poll-question">📊 Bạn chọn số nào?</div>
+            <div class="poll-options">
+              <div class="poll-option" id="opt1" onclick="castVote(1)">
+                <div class="poll-bar one" id="bar1" style="width:0%"></div>
+                <div class="poll-inner">
+                  <div class="poll-num one">1</div>
+                  <div class="poll-label">Số Một</div>
+                  <div class="poll-pct" id="pct1">0%</div>
+                  <div class="poll-check hidden" id="chk1">✓</div>
+                </div>
+              </div>
+              <div class="poll-option" id="opt2" onclick="castVote(2)">
+                <div class="poll-bar two" id="bar2" style="width:0%"></div>
+                <div class="poll-inner">
+                  <div class="poll-num two">2</div>
+                  <div class="poll-label">Số Hai</div>
+                  <div class="poll-pct" id="pct2">0%</div>
+                  <div class="poll-check hidden" id="chk2">✓</div>
+                </div>
+              </div>
+            </div>
+            <div class="poll-footer">
+              <span id="totalVotes">0 lượt bầu</span>
+            </div>
+            <div class="voter-avatars" id="voterAvatars1" style="margin-top:8px"></div>
+            <div class="voter-avatars" id="voterAvatars2"></div>
+          </div>
+          <!-- Reaction row -->
+          <div class="reactions">
+            <div class="reaction" id="react1" onclick="castVote(1)">
+              <span class="emoji">1️⃣</span>
+              <span class="count" id="rCount1">0</span>
+            </div>
+            <div class="reaction" id="react2" onclick="castVote(2)">
+              <span class="emoji">2️⃣</span>
+              <span class="count" id="rCount2">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sys-msg" id="joinLine" style="display:none"></div>
+    </div>
+
+    <!-- input -->
+    <div class="inputbar">
+      <div class="input-wrap">
+        <input type="text" id="chatInput" placeholder="Đăng nhập để nhắn tin..." disabled maxlength="200"
+          onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()" disabled>Gửi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+const KEY = 'vchat_state_v3';
+let state = load();
+
+let me = null; // current user name
+
+function load(){
+  try{return JSON.parse(localStorage.getItem(KEY))||defaultState()}catch{return defaultState()}
+}
+function defaultState(){
+  return {
+    users:{},        // name -> {color}
+    votes:{},        // name -> 1|2
+    messages:[],     // [{author,color,text,time}]
+    joins:[]         // [name]  who has joined
+  };
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+
+// ─── Colors ──────────────────────────────────────────────
+const COLORS=['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9','#F0B27A','#82E0AA'];
+function colorFor(name){
+  if(state.users[name]) return state.users[name].color;
+  return COLORS[Math.abs(hashStr(name))%COLORS.length];
+}
+function hashStr(s){let h=0;for(let c of s)h=(h*31+c.charCodeAt(0))|0;return h;}
+function initials(name){return name.slice(0,2).toUpperCase()}
+
+// ─── Login ───────────────────────────────────────────────
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')joinChat()});
+
+function joinChat(){
+  const raw = document.getElementById('nameInput').value.trim();
+  const errEl = document.getElementById('nameErr');
+  if(!raw){errEl.textContent='Hãy nhập tên của bạn!';return}
+  if(raw.length<2){errEl.textContent='Tên phải có ít nhất 2 ký tự.';return}
+  errEl.textContent='';
+  me = raw;
+
+  // register user
+  if(!state.users[me]){
+    state.users[me] = {color:colorFor(me)};
+    state.joins.push(me);
+    save();
+  }
+
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('chatInput').placeholder='Nhắn gì đó...';
+  document.getElementById('chatInput').disabled=false;
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('chatInput').focus();
+
+  renderAll();
+  showJoinLine();
+}
+
+// ─── Vote ─────────────────────────────────────────────────
+function castVote(n){
+  if(!me){showToast('Hãy đăng nhập trước!');return}
+  const prev = state.votes[me];
+  if(prev===n){
+    // toggle off = remove vote
+    delete state.votes[me];
+  } else {
+    state.votes[me] = n;
+  }
+  save();
+  renderPoll();
+  if(state.votes[me]) showToast(`Bạn đã chọn số ${n}!`);
+  else showToast('Đã bỏ chọn');
+}
+
+function renderPoll(){
+  const all = Object.values(state.votes);
+  const v1 = all.filter(x=>x===1).length;
+  const v2 = all.filter(x=>x===2).length;
+  const total = v1+v2;
+  const p1 = total?Math.round(v1/total*100):0;
+  const p2 = total?100-p1:0;
+
+  document.getElementById('pct1').textContent=p1+'%';
+  document.getElementById('pct2').textContent=p2+'%';
+  document.getElementById('bar1').style.width=p1+'%';
+  document.getElementById('bar2').style.width=p2+'%';
+  document.getElementById('totalVotes').textContent=total+(total===1?' lượt bầu':' lượt bầu');
+  document.getElementById('rCount1').textContent=v1;
+  document.getElementById('rCount2').textContent=v2;
+
+  // my vote highlight
+  const myV = me ? state.votes[me] : null;
+  document.getElementById('opt1').className='poll-option'+(myV===1?' voted-one':'');
+  document.getElementById('opt2').className='poll-option'+(myV===2?' voted-two':'');
+  document.getElementById('chk1').className='poll-check one'+(myV===1?'':' hidden');
+  document.getElementById('chk1').style.background='var(--one)';
+  document.getElementById('chk2').className='poll-check two'+(myV===2?'':' hidden');
+  document.getElementById('chk2').style.background='var(--two)';
+
+  document.getElementById('react1').className='reaction'+(myV===1?' active-one':'');
+  document.getElementById('react2').className='reaction'+(myV===2?' active-two':'');
+
+  // voter pills
+  const voters1 = Object.entries(state.votes).filter(([,v])=>v===1).map(([n])=>n);
+  const voters2 = Object.entries(state.votes).filter(([,v])=>v===2).map(([n])=>n);
+  document.getElementById('voterAvatars1').innerHTML = voters1.map(n=>voterPill(n,'one')).join('');
+  document.getElementById('voterAvatars2').innerHTML = voters2.map(n=>voterPill(n,'two')).join('');
+}
+
+function voterPill(name,side){
+  const color = state.users[name]?.color||'#888';
+  return `<div class="voter-pill"><div class="av" style="background:${color};color:#fff">${initials(name)}</div>${escHtml(name)}</div>`;
+}
+
+// ─── Messages ─────────────────────────────────────────────
+function sendMsg(){
+  if(!me) return;
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  const msg={author:me,color:colorFor(me),text,time:nowStr()};
+  state.messages.push(msg);
+  save();
+  appendMsg(msg,true);
+}
+
+function appendMsg(msg,scroll){
+  const el=document.createElement('div');
+  el.className='msg-group';
+  el.innerHTML=`
+    <div class="avatar-lg" style="background:${msg.color};color:#fff">${initials(msg.author)}</div>
+    <div class="msg-body">
+      <div class="msg-header">
+        <span class="msg-author" style="color:${msg.color}">${escHtml(msg.author)}</span>
+        <span class="msg-time">${escHtml(msg.time)}</span>
+      </div>
+      <div class="msg-content">${escHtml(msg.text)}</div>
+    </div>`;
+  document.getElementById('messages').appendChild(el);
+  if(scroll) el.scrollIntoView({behavior:'smooth'});
+}
+
+function showJoinLine(){
+  const line = document.getElementById('joinLine');
+  line.style.display='flex';
+  line.textContent=`${me} đã tham gia phòng`;
+}
+
+// ─── Members sidebar ──────────────────────────────────────
+function renderMembers(){
+  const names = Object.keys(state.users);
+  document.getElementById('memberCount').textContent=names.length;
+  document.getElementById('memberList').innerHTML=names.map(n=>{
+    const color=colorFor(n);
+    const tag = state.votes[n] ? `#${state.votes[n]}` : '';
+    return `<div class="member">
+      <div class="avatar-sm" style="background:${color};color:#fff">${initials(n)}</div>
+      <span class="member-name">${escHtml(n)}</span>
+      <span class="member-tag">${tag}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Full render ──────────────────────────────────────────
+function renderAll(){
+  renderPoll();
+  renderMembers();
+  // render past messages
+  const container = document.getElementById('messages');
+  // remove old msg nodes (keep first 2: sys-msg + poll-group + join-line)
+  const kids=[...container.children];
+  kids.slice(2,kids.length-1).forEach(k=>k.remove());
+  state.messages.forEach(m=>appendMsg(m,false));
+}
+
+// ─── Utils ───────────────────────────────────────────────
+function nowStr(){
+  const d=new Date();
+  return `Hôm nay lúc ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ─── Init ────────────────────────────────────────────────
+// Check if already logged in this session
+const sesName = sessionStorage.getItem('vchat_me');
+if(sesName && state.users[sesName]){
+  me=sesName;
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('chatInput').placeholder='Nhắn gì đó...';
+  document.getElementById('chatInput').disabled=false;
+  document.getElementById('sendBtn').disabled=false;
+}
+renderAll();
+
+// save session
+document.getElementById('loginOverlay') && (window._loginDone=()=>sessionStorage.setItem('vchat_me',me));
+const _origJoin=window.joinChat||function(){};
+// patch to save session on join
+window.joinChat=function(){
+  const raw=document.getElementById('nameInput').value.trim();
+  const errEl=document.getElementById('nameErr');
+  if(!raw){errEl.textContent='Hãy nhập tên của bạn!';return}
+  if(raw.length<2){errEl.textContent='Tên phải có ít nhất 2 ký tự.';return}
+  errEl.textContent='';
+  me=raw;
+  sessionStorage.setItem('vchat_me',me);
+  if(!state.users[me]){
+    state.users[me]={color:colorFor(me)};
+    state.joins.push(me);
+    save();
+  }
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('chatInput').placeholder='Nhắn gì đó...';
+  document.getElementById('chatInput').disabled=false;
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('chatInput').focus();
+  renderAll();
+  showJoinLine();
+};
+</script>
+</body>
+</html>
